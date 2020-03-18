@@ -1,0 +1,169 @@
+﻿<%@ CodeTemplate Language="C#" ResponseEncoding="UTF-8" TargetLanguage="VB" Description="Generates a simple asp business object." %>
+<%@ Property Name="SourceTable" Type="SchemaExplorer.TableSchema" Category="数据项" Description="选择你需要操作的数据表" %>
+<%@ Property Name="SelectFilter" Type="System.String" Optional="True" Category="选项" Description="输入你查询的条件" %>
+<%@ Property Name="SelectColls" Type="System.String" Optional="True" Category="选择字段" Description="输入你需要的列名" %>
+<%@ Property Name="SearchColls" Type="System.String" Optional="True" Category="查询字段" Description="输入你需要的列名" %>
+<%@ Property Name="ImageColls" Type="System.String" Optional="True" Category="图片字段" Description="输入你需要的列名" %>
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Assembly Name="System.Data" %>
+<%@ Import Namespace="SchemaExplorer" %>
+<%@ Import Namespace="System.Data" %>
+<%@ Import Namespace="System.Text" %>
+
+using MSS.API.Common;
+using MSS.API.Common.Utility;
+using ToBeReplacedNameSpace.Data;
+using ToBeReplacedNameSpace.Model;
+using System;
+using System.Net;
+using System.Threading.Tasks;
+
+
+// Coded By <%= System.Environment.UserName %> <%= DateTime.Now %>
+namespace ToBeReplacedNameSpace.Service
+{
+    public interface I<%=ConvertToEntity(SourceTable.Name)%>Service
+    {
+        Task<ApiResult> GetPageList(<%=ConvertToEntity(SourceTable.Name)%>Parm parm);
+        Task<ApiResult> Save(<%=ConvertToEntity(SourceTable.Name)%> obj);
+        Task<ApiResult> Update(<%=ConvertToEntity(SourceTable.Name)%> obj);
+        Task<ApiResult> Delete(string ids);
+        Task<ApiResult> GetByID(int id);
+    }
+    
+    public class <%=ConvertToEntity(SourceTable.Name)%>Service : I<%=ConvertToEntity(SourceTable.Name)%>Service
+    {
+        private readonly I<%=ConvertToEntity(SourceTable.Name)%>Repo<<%=ConvertToEntity(SourceTable.Name)%>> _repo;
+        private readonly IAuthHelper _authhelper;
+        private readonly int _userID;
+
+        public <%=ConvertToEntity(SourceTable.Name)%>Service(I<%=ConvertToEntity(SourceTable.Name)%>Repo<<%=ConvertToEntity(SourceTable.Name)%>> repo, IAuthHelper authhelper)
+        {
+            _repo = repo;
+            _authhelper = authhelper;
+            _userID = _authhelper.GetUserId();
+        }
+        
+        public async Task<ApiResult> GetPageList(<%=ConvertToEntity(SourceTable.Name)%>Parm parm)
+        {
+            ApiResult ret = new ApiResult();
+            try
+            {
+                //parm.UserID = _userID;
+                //parm.UserID = 40;
+                var data = await _repo.GetPageList(parm);
+                ret.code = Code.Success;
+                ret.data = data;
+            }
+            catch (Exception ex)
+            {
+                ret.code = Code.Failure;
+                ret.msg = ex.Message;
+            }
+
+            return ret;
+        }
+
+        public async Task<ApiResult> Save(<%=ConvertToEntity(SourceTable.Name)%> obj)
+        {
+            ApiResult ret = new ApiResult();
+            try
+            {
+                DateTime dt = DateTime.Now;
+                obj.UpdatedTime = dt;
+                obj.CreatedTime = dt;
+                obj.UpdatedBy = _userID;
+                obj.CreatedBy = _userID;
+                ret.data = await _repo.Save(obj);
+                ret.code = Code.Success;
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                ret.code = Code.Failure;
+                ret.msg = ex.Message;
+                return ret;
+            }
+        }
+
+        public async Task<ApiResult> Update(<%=ConvertToEntity(SourceTable.Name)%> obj)
+        {
+            ApiResult ret = new ApiResult();
+            try
+            {
+                <%=ConvertToEntity(SourceTable.Name)%> et = await _repo.GetByID(obj.Id);
+                if (et!=null)
+                {
+                    DateTime dt = DateTime.Now;
+                    obj.UpdatedTime = dt;
+                    obj.UpdatedBy = _userID;
+                    ret.data = await _repo.Update(obj);
+                    ret.code = Code.Success;
+                }
+                else
+                {
+                    ret.code = Code.DataIsnotExist;
+                    ret.msg = "所要修改的数据不存在";
+                }
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                ret.code = Code.Failure;
+                ret.msg = ex.Message;
+                return ret;
+            }
+        }
+
+        public async Task<ApiResult> Delete(string ids)
+        {
+            ApiResult ret = new ApiResult();
+            try
+            {
+                ret.data = await _repo.Delete(ids.Split(','),_userID);
+                ret.code = Code.Success;
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                ret.code = Code.Failure;
+                ret.msg = ex.Message;
+                return ret;
+            }
+        }
+
+        public async Task<ApiResult> GetByID(int id)
+        {
+            ApiResult ret = new ApiResult();
+            try
+            {
+                <%=ConvertToEntity(SourceTable.Name)%> obj = await _repo.GetByID(id);
+                ret.data = obj;
+                ret.code = Code.Success;
+                return ret;
+            }
+            catch (Exception ex)
+            {
+                ret.code = Code.Failure;
+                ret.msg = ex.Message;
+                return ret;
+            }
+        }
+    }
+}
+
+
+<script runat="template">
+ public string ConvertToEntity(string val)
+ {
+     var str="";
+     string[] arr = val.Split('_');
+     foreach(var s in arr)
+     {
+         var cur = s.Substring(0,1).ToUpper()+s.Substring(1);
+         str += cur;
+     }
+     return str;
+ }
+</script>
+

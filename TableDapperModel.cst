@@ -1,0 +1,61 @@
+﻿<%-- 
+Name: Database Table Properties
+Author: Paul Welter
+Description: Create a list of properties from a database table
+--%>
+<%@ CodeTemplate Language="C#" TargetLanguage="C#" Debug="False" Description="Create a list of properties from database table." %>
+<%@ Property Name="SourceTable" Type="SchemaExplorer.TableSchema" Category="Context" Description="Table that the object is based on." %>
+<%@ Map Name="CSharpAlias" Src="System-CSharpAlias" Description="System to C# Type Map" %>
+<%@ Assembly Name="SchemaExplorer" %>
+<%@ Import Namespace="SchemaExplorer" %>
+
+
+using Dapper.FluentMap.Mapping;
+using ToBeReplacedNameSpace.Data;
+using System.Collections.Generic;
+
+// Coded by <%= System.Environment.UserName %> <%= DateTime.Now %>
+namespace ToBeReplacedNameSpace.Model
+{
+    public class <%= ConvertToEntity(this.SourceTable.Name) %>Parm : BaseQueryParm
+    {
+
+    }
+    public class <%= ConvertToEntity(this.SourceTable.Name) %>PageView
+    {
+        public List<<%= ConvertToEntity(this.SourceTable.Name) %>> rows { get; set; }
+        public int total { get; set; }
+    }
+        
+    public class <%= ConvertToEntity(this.SourceTable.Name) %> : BaseEntity
+    {
+    <% foreach (ColumnSchema column in this.SourceTable.Columns) {  %>
+        <%-- public <%= CSharpAlias[column.SystemType.FullName] %> <%= StringUtil.ToCamelCase(column.Name) %> {get;set;}--%>
+        public <%= CSharpAlias[column.SystemType.FullName] %> <%= ConvertToEntity(column.Name) %> {get;set;}
+    <% } %>
+    }
+    
+    public class <%= ConvertToEntity(this.SourceTable.Name) %>Map : EntityMap<<%= ConvertToEntity(this.SourceTable.Name) %>>
+    {
+        public <%= ConvertToEntity(this.SourceTable.Name) %>Map()
+        {
+            <% foreach (ColumnSchema column in this.SourceTable.Columns) {  %>
+                Map(o => o.<%= ConvertToEntity(column.Name) %>).ToColumn("<%= column.Name %>");
+            <% } %>
+        }
+    }
+
+}
+<script runat="template">
+ public string ConvertToEntity(string val)
+ {
+     var str="";
+     string[] arr = val.Split('_');
+     foreach(var s in arr)
+     {
+         var cur = s.Substring(0,1).ToUpper()+s.Substring(1);
+         str += cur;
+     }
+     return str;
+ }
+</script>
